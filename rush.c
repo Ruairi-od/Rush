@@ -150,42 +150,6 @@ int main(int argc, char *argv[])
 		info = localtime(&usr_time);//getting time off the local system.
 		strftime(time_buffer, 50, "[%d/%m %H:%M]", info);//Time is got and printed before the command prompt.
 		printf("%s # ", time_buffer);
-		printf("Entering raw mode\n");
-		system("/bin/stty raw");
-		while(1)
-		{
-			ch_1 = getchar();
-			if (ch_1 == 27)
-			{
-				//printf("Up\n");
-				ch_2 = getchar();
-				if (ch_2 == 91)
-				{
-					//printf("Up2\n");
-					ch_3 = getchar();
-					if (ch_3 == 65)
-					{
-						//printf("Up3\n");
-						break;
-
-					} else
-					{
-						break;
-					}
-				} else
-				{
-					break;
-
-				}
-			} else
-			{
-				break;
-			}
-		}
-		printf("Entering sane mode\n");
-		__fpurge(stdin);
-		fflush(stdout);
-		system("/bin/stty sane");
 		read = (getline(&temp, &len, stdin));//Attempt to read line of input from console.
 		temp_2 = malloc(strlen(temp));
 		strcpy(temp_2, temp);
