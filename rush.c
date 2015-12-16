@@ -151,7 +151,7 @@ int main(int argc, char *argv[])
 		strftime(time_buffer, 50, "[%d/%m %H:%M]", info);//Time is got and printed before the command prompt.
 		printf("%s # ", time_buffer);
 		printf("Entering raw mode\n");
-		system("/bin/stty -parenb -parodd cs8 hupcl -cstopb cread -clocal -crtscts -ignbrk brkint -ignpar -parmrk -inpck -istrip -inlcr -igncr icrnl ixon -ixoff -iuclc ixany imaxbel iutf8 opost -olcuc -ocrnl onlcr -onocr -onlret -ofill -ofdel nl0 cr0 tab0 bs0 vt0 ff0 isig icanon iexten echo echoe echok -echonl -noflsh -xcase -tostop -echoprt echoctl echoke");
+		system("/bin/stty raw");
 		while(1)
 		{
 			ch_1 = getchar();
