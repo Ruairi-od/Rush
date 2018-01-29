@@ -4,11 +4,8 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <time.h>
-#include <signal.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <termios.h>
-#include <stdio_ext.h>
 
 
 int sig_flag = 0;//Flag used to signal catch of SIGINT Signal
@@ -21,20 +18,19 @@ int sig_flag = 0;//Flag used to signal catch of SIGINT Signal
 
 void command_cd(char **args)
 {
-	int return_val;
 	char cwd[100];
 	char *home = getenv("HOME");
 
 	if(*(args+1) == NULL)//Check if a directory has been specified
 	{
-		if((return_val = chdir(home)) != 0)//Change directory to home directory.
+		if(chdir(home) != 0)//Change directory to home directory.
 		{
 			perror("Error ");
 			return;
 
 		}
 	}
-	else if((return_val = chdir(*(args+1))) != 0)//Change directory to directory specified.
+	else if(chdir(*(args+1)) != 0)//Change directory to directory specified.
 	{
 		perror("Error ");
 		return;
@@ -112,25 +108,16 @@ void sig_handler(int signo)
 	}
 }
 
-void command_history(char *input, char **buffer, int *count)
-{
-	*count = *count % 10;
-	buffer[*count] = malloc(strlen(input)+1);
-	memcpy(buffer[*count], input, strlen(input)+1);
-	*count = *count + 1;
-}
-
 int main(int argc, char *argv[])
 {
-	char *temp = NULL, *temp_2 = NULL;
+	char *temp = NULL;
 	char **args;
 	size_t len = 0;
 	time_t usr_time;
 	struct tm *info;
 	char time_buffer[50];
-	char ch_1=NULL, ch_2=NULL, ch_3=NULL;
 	char **command_buffer = malloc(10*sizeof(char*));;
-	int i=0, read, redirect_mark, file, cur_dup, command_count=0;
+	int i=0, read, redirect_mark, file = 0, cur_dup = 0;
 
 	signal(SIGINT, sig_handler);//Catching the signal.
 	fflush(stdout);
@@ -150,16 +137,7 @@ int main(int argc, char *argv[])
 		info = localtime(&usr_time);//getting time off the local system.
 		strftime(time_buffer, 50, "[%d/%m %H:%M]", info);//Time is got and printed before the command prompt.
 		printf("%s # ", time_buffer);
-		read = (getline(&temp, &len, stdin));//Attempt to read line of input from console.
-		temp_2 = malloc(strlen(temp));
-		strcpy(temp_2, temp);
-		temp = malloc((strlen(temp)+1) * sizeof(char));
-		temp[0] = ch_1;
-		for(i=0;i<=strlen(temp_2);i++)
-		{
-			temp[i+1] = temp_2[i];
-		}
-		free(temp_2);
+		read = (int) (getline(&temp, &len, stdin));//Attempt to read line of input from console.
 		if(read == EOF)//If EOF signal is recieved
 		{
 			free(args);//Free memory
@@ -186,7 +164,6 @@ int main(int argc, char *argv[])
 			free(args);//Free memory
 			continue;//Dont continue with current loop.
 		}
-		command_history(temp, command_buffer, &command_count);
 		redirect_mark = command_args(temp, args);//Call function to split input into seperate function and arguments
 		if(redirect_mark != -1)//If redirect has been requested
 		{
