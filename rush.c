@@ -8,7 +8,7 @@
 #include <fcntl.h>
 
 
-int sig_flag = 0;//Flag used to signal catch of SIGINT Signal
+int sig_flag = 0;
 
 /*
  * Command_Cd() is used when the cd command is entered into the shell. It takes an array of arrays containing the command entered and any arguments
@@ -16,27 +16,22 @@ int sig_flag = 0;//Flag used to signal catch of SIGINT Signal
  * end of the function.
  */
 
-void command_cd(char **args)
-{
-	char cwd[100];
-	char *home = getenv("HOME");
+void command_cd(char **args) {
+    char cwd[100];
+    char *home = getenv("HOME");
 
-	if(*(args+1) == NULL)//Check if a directory has been specified
-	{
-		if(chdir(home) != 0)//Change directory to home directory.
-		{
-			perror("Error ");
-			return;
-
-		}
-	}
-	else if(chdir(*(args+1)) != 0)//Change directory to directory specified.
-	{
-		perror("Error ");
-		return;
-	}
-	getcwd(cwd, 100);//Get current working directory.
-	printf("%s\n", cwd);//Printf current working directory.
+    if(*(args+1) == NULL) {
+        if(chdir(home) != 0) {
+            perror("Error ");
+            return;
+        }
+    }
+    else if(chdir(*(args+1)) != 0) {
+        perror("Error ");
+        return;
+    }
+    getcwd(cwd, 100);
+    printf("%s\n", cwd);
 }
 
 
@@ -46,148 +41,127 @@ void command_cd(char **args)
  * run successfully it will wait until the child process has finished before returning.
  */
 
-void command(char **args)
-{
-	pid_t pid;
-	int status;
+void command(char **args) {
+    pid_t pid;
+    int status;
 
-	if((pid = fork()) < 0)//Fork failed
-	{
-		printf("Error fork failed\n");
-		exit(EXIT_FAILURE);
-	}
-	else if (pid == 0)   //child process
-	{
-		if(execvp(args[0], args) < 0)//Check if command executed correctly
-		{
-			printf("Error execvp failed\n");
-			exit(EXIT_FAILURE);
-		}
-	}
-	else   //Parent process
-	{
-		while(wait(&status) != pid);//Wait until the process has completed before finishing.
-	}
+    if((pid = fork()) < 0) {
+        printf("Error fork failed\n");
+        exit(EXIT_FAILURE);
+    }
+    else if (pid == 0) {
+        if(execvp(args[0], args) < 0) {
+            printf("%s: Command not found\n", args[0]);
+            exit(EXIT_FAILURE);
+        }
+    }
+    else {
+        while(wait(&status) != pid);
+    }
 }
 
 /*
  * This function is used to seperate the line of input from the console into its seperate components. The components are seperated by spaces.
  */
 
-int command_args(char *input, char **args_in)
-{
-	char *token = NULL;
-	int count=0, marker=-1;
+int command_args(char *input, char **args_in) {
+    char *token = NULL;
+    int count=0, marker=-1;
 
-	strtok(input, "\n");//The end of line marker is trimmed off the input.
-	token = strtok(input, " ");//The first token would be the command entered.
-	while(token != NULL)//Function is null terminated.
-	{
-		if(strcmp(token, ">")==0)//Check if the input contains a ">" symbol. This is used in main to output to a file instead of stdout.
-		{
-			marker = count;//A marker flag is set to the location of the < symbol
-		}
-		args_in[count] = token;//The seperate components are assigned to an array.
-		count++;
-		token = strtok(NULL, " ");
-	}
-	free(token);//Memory free'd
-	return marker;
+    strtok(input, "\n");
+    token = strtok(input, " ");
+    while(token != NULL) {
+        if(strcmp(token, ">")==0) {
+            marker = count;
+        }
+        args_in[count] = token;
+        count++;
+        token = strtok(NULL, " ");
+    }
+    free(token);
+    return marker;
 }
 
 /*
  * Basic signal handling function. Used for catching the SIGINT signal. Stops the program from exiting when a SIGINT signal is seen.
  */
 
-void sig_handler(int signo)
-{
-	if(signo == SIGINT)
-	{
-		fflush(stdout);
-		sig_flag = 1;//Sets the signal flag to show it is not a command so should not be run in main.
-	}
+void sig_handler(int signo) {
+    if(signo == SIGINT) {
+        fflush(stdout);
+        sig_flag = 1;
+    }
 }
 
-int main(int argc, char *argv[])
-{
-	char *temp = NULL;
-	char **args;
-	size_t len = 0;
-	time_t usr_time;
-	struct tm *info;
-	char time_buffer[50];
-	char **command_buffer = malloc(10*sizeof(char*));;
-	int i=0, read, redirect_mark, file = 0, cur_dup = 0;
+int main(int argc, char *argv[]) {
+    char *temp = NULL;
+    char **args;
+    size_t len = 0;
+    time_t usr_time;
+    struct tm *info;
+    char time_buffer[50];
+    char **command_buffer = malloc(10*sizeof(char*));;
+    int i=0, read, redirect_mark, file = 0, cur_dup = 0;
 
-	signal(SIGINT, sig_handler);//Catching the signal.
-	fflush(stdout);
-	for(i=0; i<10; i++)
-	{
-		*(command_buffer+i) = NULL;//Arrays are initialised.
-	}
+    signal(SIGINT, sig_handler);
+    fflush(stdout);
+    for(i=0; i<10; i++) {
+        *(command_buffer+i) = NULL;
+    }
 
-	while(1)
-	{
-		args = malloc(10*sizeof(char*));//memory allocated for commands and arguments.
-		for(i=0; i<10; i++)
-		{
-			*(args+i) = NULL;//Arrays are initialised.
-		}
-		time(&usr_time);
-		info = localtime(&usr_time);//getting time off the local system.
-		strftime(time_buffer, 50, "[%d/%m %H:%M]", info);//Time is got and printed before the command prompt.
-		printf("%s # ", time_buffer);
-		read = (int) (getline(&temp, &len, stdin));//Attempt to read line of input from console.
-		if(read == EOF)//If EOF signal is recieved
-		{
-			free(args);//Free memory
-			free(temp);
-			for(i=0; i<10; i++)
-			{
-				if(*(command_buffer+i) != NULL)
-				{
-					free(*(command_buffer+i));
-				}
-			}
-			free(command_buffer);
-			exit(EXIT_SUCCESS);//Exit
-		}
-		else if(strcmp(temp, "\n") ==0)//If input was empty
-		{
-			free(args);//free memory
-			continue;//Dont continue with current loop.
-		}
-		strtok(temp, "\n");//The trailing end line character is trimmed form the input.
-		if(sig_flag != 0)//If a signal was caught
-		{
-			sig_flag = 0;
-			free(args);//Free memory
-			continue;//Dont continue with current loop.
-		}
-		redirect_mark = command_args(temp, args);//Call function to split input into seperate function and arguments
-		if(redirect_mark != -1)//If redirect has been requested
-		{
-			cur_dup = dup(1);//Save curret output to terminal location
-			redirect_mark++;
-			file = open(*(args+redirect_mark), O_CREAT|O_TRUNC|O_RDWR, S_IRWXU);//Open file to output stdout to with permissions for owner.
-			dup2(file, 1);//Redirect stdout to file location.
-			*(args+redirect_mark--) = NULL;
-			*(args+redirect_mark) = NULL;
-			redirect_mark = -1;
-
-		} else
-		{
-			redirect_mark = 0;
-		}
-		if(strcmp((args[0]), "cd") == 0)//Check if cd command has been entered.
-			command_cd(args);//Call function to execute cd command
-		else
-			command(args);//Call function to execute all other commands.
-		if(redirect_mark == -1)//If stdout was redirected
-		{
-			dup2(cur_dup, 1);//Reset stdout to the terminal
-			close(file);//Close the file the was opened.
-		}
-		free(args);//Free memory
-	}
+    while(1) {
+        args = malloc(10*sizeof(char*));
+        for(i=0; i<10; i++) {
+            *(args+i) = NULL;
+        }
+        time(&usr_time);
+        info = localtime(&usr_time);
+        strftime(time_buffer, 50, "[%d/%m %H:%M]", info);
+        printf("%s # ", time_buffer);
+        read = (int) (getline(&temp, &len, stdin));
+        if(read == EOF) {
+            free(args);
+            free(temp);
+            for(i=0; i<10; i++) {
+                if(*(command_buffer+i) != NULL) {
+                    free(*(command_buffer+i));
+                }
+            }
+            free(command_buffer);
+            exit(EXIT_SUCCESS);
+        }
+        else if(strcmp(temp, "\n") ==0) {
+            free(args);
+            continue;
+        }
+        strtok(temp, "\n");
+        if(sig_flag != 0) {
+            sig_flag = 0;
+            free(args);
+            continue;
+        }
+        redirect_mark = command_args(temp, args);
+        if(redirect_mark != -1) {
+            cur_dup = dup(1);
+            redirect_mark++;
+            file = open(*(args+redirect_mark), O_CREAT|O_TRUNC|O_RDWR, S_IRWXU);
+            dup2(file, 1);
+            *(args+redirect_mark--) = NULL;
+            *(args+redirect_mark) = NULL;
+            redirect_mark = -1;
+        } else {
+            redirect_mark = 0;
+        }
+        if(strcmp((args[0]), "cd") == 0) {
+            command_cd(args);
+        }
+        else {
+            command(args);
+        }
+        if(redirect_mark == -1) {
+            dup2(cur_dup, 1);
+            close(file);
+        }
+        free(args);
+    }
 }
